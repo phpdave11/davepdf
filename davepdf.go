@@ -3,6 +3,8 @@ package davepdf
 import (
 	"bytes"
 	"fmt"
+
+	"github.com/phpdave11/gofpdi"
 )
 
 type Pdf struct {
@@ -118,6 +120,9 @@ func (pdf *Pdf) Write() {
 	pdf.outln("  /Font <<")
 	pdf.outln("    /FONT1 4 0 R")
 	pdf.outln("  >>")
+	pdf.outln("  /XObject <<")
+	pdf.outln("    /GOFPDITPL0 7 0 R")
+	pdf.outln("  >>")
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
 
@@ -133,9 +138,19 @@ func (pdf *Pdf) Write() {
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
 
+	// init gofpdi
+	fpdi := gofpdi.NewImporter()
+	fpdi.SetSourceFile("/Users/dave/Desktop/PDFPL110.pdf")
+	fpdi.SetNextObjectID(7)
+	tpl1 := fpdi.ImportPage(1, "/MediaBox")
+
+	// get gofpdi template values
+	tplName, scaleX, scaleY, tX, tY := fpdi.UseTemplate(tpl1, 0, -400, 400, 0)
+	str := fmt.Sprintf("q 0 J 1 w 0 j 0 G 0 g q %.4F 0 0 %.4F %.4F %.4F cm %s Do Q Q", scaleX, scaleY, tX, tY, tplName)
+
 	// add page
 	page := pdf.AddPage()
-	page.contents.data = []byte("BT /FONT1 18 Tf 0 0 Td (Hello World) Tj ET")
+	page.contents.data = []byte("BT /FONT1 18 Tf 0 0 Td (Hello World) Tj ET " + str)
 
 	// write page
 	pdf.newObj()
@@ -159,6 +174,16 @@ func (pdf *Pdf) Write() {
 	pdf.outln(string(page.contents.data))
 	pdf.outln("endstream")
 	pdf.outln("endobj\n")
+
+	// write imported objects
+	fpdi.PutFormXobjects()
+
+	objs := fpdi.GetImportedObjects()
+	for i := 7; i < len(objs)+7; i++ {
+		pdf.newObj()
+		pdf.outln(fmt.Sprintf("%d 0 obj", i))
+		pdf.outln(objs[i])
+	}
 
 	// write xref
 	pdf.newObj()
