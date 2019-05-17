@@ -19,6 +19,14 @@ type Pdf struct {
 	x          float64
 	y          float64
 	page       *PdfPage
+	fillColor  *CMYKColor
+}
+
+type CMYKColor struct {
+	C int
+	Y int
+	M int
+	K int
 }
 
 type PdfCatalog struct {
@@ -75,6 +83,13 @@ func (pdf *Pdf) SetFontFamily(fontFamily string) {
 
 func (pdf *Pdf) SetFontSize(fontSize int) {
 	pdf.fontSize = fontSize
+}
+
+func (pdf *Pdf) SetFillColor(c *CMYKColor) {
+	pdf.fillColor = c
+
+	pdf.page.contents.data = append(pdf.page.contents.data, []byte(fmt.Sprintf("%.5f %.5f %.5f %.5f k %% set fill color (cmyk)\n", float64(c.C)/100, float64(c.Y)/100, float64(c.M)/100, float64(c.K)/100))...)
+
 }
 
 func (pdf *Pdf) SetXY(x, y float64) {
@@ -171,7 +186,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln("  /Type /Font")
 	pdf.outln("  /Subtype /Type1")
 	pdf.outln("  /Name /FONT1")
-	pdf.outln("  /BaseFont /Helvetica")
+	pdf.outln("  /BaseFont /Times-Roman")
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
 	/*
@@ -190,12 +205,14 @@ func (pdf *Pdf) Write() {
 	page := pdf.AddPage()
 	//page.contents.data = []byte("BT /FONT1 18 Tf 0 0 Td (Hello World) Tj ET " + str)
 
-	pdf.SetFontFamily("Helvetica")
+	pdf.SetFontFamily("Times-Roman")
 	pdf.SetFontSize(18)
 	pdf.SetXY(10, 600)
 	pdf.SetXY(0, 0)
-	pdf.Text("Hello World!")
+	pdf.Text( /*"こんにちは and " + */ "Hello World!")
 
+	//pdf.SetFillColor(&CMYKColor{C: 48, M: 32, Y: 0, K: 0})
+	pdf.SetFillColor(&CMYKColor{C: 0, M: 81, Y: 81, K: 45})
 	pdf.Rect(10, 100, 150, 50, "F")
 
 	// write page
