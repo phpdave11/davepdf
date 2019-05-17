@@ -85,11 +85,19 @@ func (pdf *Pdf) SetXY(x, y float64) {
 func (pdf *Pdf) Text(text string) {
 	var instructions string
 
-	instructions += fmt.Sprintf("  %-30s %% begin text\n", "BT")
-	instructions += fmt.Sprintf("    %-28s %% set font family and font size\n", fmt.Sprintf("%s %d Tf", pdf.fontFamily, pdf.fontSize))
-	instructions += fmt.Sprintf("    %-28s %% set position to draw text\n", fmt.Sprintf("%f %f Td", pdf.x, pdf.y))
-	instructions += fmt.Sprintf("    %-28s %% write text\n", fmt.Sprintf("(%s)Tj", text))
-	instructions += fmt.Sprintf("  %-30s %% end text", "ET")
+	instructions += fmt.Sprintf("%-50s %% begin text\n", "BT")
+	instructions += fmt.Sprintf("  %-48s %% set font family and font size\n", fmt.Sprintf("%s %d Tf", pdf.fontFamily, pdf.fontSize))
+	instructions += fmt.Sprintf("  %-48s %% set position to draw text\n", fmt.Sprintf("%f %f Td", pdf.x, pdf.y))
+	instructions += fmt.Sprintf("  %-48s %% write text\n", fmt.Sprintf("(%s)Tj", text))
+	instructions += fmt.Sprintf("%-50s %% end text\n", "ET")
+
+	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
+}
+
+func (pdf *Pdf) Rect(x, y, w, h float64, mode string) {
+	var instructions string
+
+	instructions += fmt.Sprintf("%-50s %% draw rectangle\n", fmt.Sprintf("%.5f %.5f %.5f %.5f re %s", x, y, w, h, mode))
 
 	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
 }
@@ -187,6 +195,8 @@ func (pdf *Pdf) Write() {
 	pdf.SetXY(10, 600)
 	pdf.SetXY(0, 0)
 	pdf.Text("Hello World!")
+
+	pdf.Rect(10, 100, 150, 50, "F")
 
 	// write page
 	pdf.newObj()
