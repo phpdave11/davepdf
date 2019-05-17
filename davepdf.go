@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/phpdave11/gofpdi"
+	//"github.com/phpdave11/gofpdi"
 )
 
 type Pdf struct {
@@ -15,6 +15,12 @@ type Pdf struct {
 	xref     *PdfXrefTable
 	offsets  map[int]int
 	objects  []*PdfObject
+fontFamily string
+fontSize int
+x float64
+y float64
+page *PdfPage
+
 }
 
 type PdfCatalog struct {
@@ -65,10 +71,36 @@ func NewPdf() *Pdf {
 	return pdf
 }
 
+func (pdf *Pdf) SetFontFamily(fontFamily string) {
+	pdf.fontFamily = "/FONT1"
+}
+
+func (pdf *Pdf) SetFontSize(fontSize int) {
+	pdf.fontSize = fontSize
+}
+
+func (pdf *Pdf) SetXY(x, y float64) {
+	pdf.x = x
+	pdf.y = y
+}
+
+func (pdf *Pdf) Text(text string) {
+	var instructions string
+
+	instructions += fmt.Sprintf("  %-30s %% begin text\n", "BT")
+	instructions += fmt.Sprintf("    %-28s %% set font family and font size\n", fmt.Sprintf("%s %d", pdf.fontFamily))
+	instructions += fmt.Sprintf("    %-28s %% set position to draw text\n", fmt.Sprintf("%f %f Td", pdf.x, pdf.y))
+	instructions += fmt.Sprintf("    %-28s %% write text\n", fmt.Sprintf("(%s)Tj", text))
+	instructions += fmt.Sprintf("  %-30s %% end text", "ET")
+
+    pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
+}
+
 func (pdf *Pdf) AddPage() *PdfPage {
 	page := &PdfPage{}
 	page.parent = pdf.pageTree
 	page.contents = &PdfContents{}
+	pdf.page = page
 
 	pdf.pageTree.pages = append(pdf.pageTree.pages, page)
 
@@ -100,7 +132,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln("  /Type /Catalog")
 	pdf.outln("  /Pages 2 0 R")
 	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.outln("endobj")
 
 	// write page tree
 	pdf.newObj()
@@ -110,7 +142,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln("  /Count 1")
 	pdf.outln("  /Kids [5 0 R]")
 	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.outln("endobj")
 
 	// write resources
 	pdf.newObj()
@@ -121,10 +153,10 @@ func (pdf *Pdf) Write() {
 	pdf.outln("    /FONT1 4 0 R")
 	pdf.outln("  >>")
 	pdf.outln("  /XObject <<")
-	pdf.outln("    /GOFPDITPL0 7 0 R")
+	//pdf.outln("    /GOFPDITPL0 7 0 R")
 	pdf.outln("  >>")
 	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.outln("endobj")
 
 	// write fonts
 	pdf.newObj()
@@ -134,10 +166,9 @@ func (pdf *Pdf) Write() {
 	pdf.outln("  /Subtype /Type1")
 	pdf.outln("  /Name /FONT1")
 	pdf.outln("  /BaseFont /Helvetica")
-	pdf.outln("  /Encoding /StandardEncoding")
 	pdf.outln(">>")
-	pdf.outln("endobj\n")
-
+	pdf.outln("endobj")
+/*
 	// init gofpdi
 	fpdi := gofpdi.NewImporter()
 	fpdi.SetSourceFile("/Users/dave/Desktop/PDFPL110.pdf")
@@ -147,7 +178,8 @@ func (pdf *Pdf) Write() {
 	// get gofpdi template values
 	tplName, scaleX, scaleY, tX, tY := fpdi.UseTemplate(tpl1, 0, -400, 400, 0)
 	str := fmt.Sprintf("q 0 J 1 w 0 j 0 G 0 g q %.4F 0 0 %.4F %.4F %.4F cm %s Do Q Q", scaleX, scaleY, tX, tY, tplName)
-
+*/
+	str := ""
 	// add page
 	page := pdf.AddPage()
 	page.contents.data = []byte("BT /FONT1 18 Tf 0 0 Td (Hello World) Tj ET " + str)
@@ -162,7 +194,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln("  /Contents 6 0 R")
 	pdf.outln("  /Resources 3 0 R")
 	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.outln("endobj")
 
 	// write page contents
 	pdf.newObj()
@@ -173,8 +205,9 @@ func (pdf *Pdf) Write() {
 	pdf.outln("stream")
 	pdf.outln(string(page.contents.data))
 	pdf.outln("endstream")
-	pdf.outln("endobj\n")
+	pdf.outln("endobj")
 
+/*
 	// write imported objects
 	fpdi.PutFormXobjects()
 
@@ -184,13 +217,14 @@ func (pdf *Pdf) Write() {
 		pdf.outln(fmt.Sprintf("%d 0 obj", i))
 		pdf.outln(objs[i])
 	}
+*/
 
 	// write xref
 	pdf.newObj()
 	pdf.outln("xref")
 	pdf.outln(fmt.Sprintf("0 %d", pdf.n))
 	pdf.outln("0000000000 65535 f ")
-	for i := 0; i < len(pdf.offsets); i++ {
+	for i := 0; i < len(pdf.offsets) - 1; i++ {
 		pdf.outln(fmt.Sprintf("%010d 00000 n ", pdf.offsets[i]))
 	}
 
@@ -204,5 +238,5 @@ func (pdf *Pdf) Write() {
 	pdf.outln(fmt.Sprintf("%d", pdf.offsets[pdf.n-1]))
 	pdf.outln("%%EOF")
 
-	fmt.Println(string(pdf.w.Bytes()))
+	fmt.Print(string(pdf.w.Bytes()))
 }
