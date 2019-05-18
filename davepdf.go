@@ -3,8 +3,8 @@ package davepdf
 import (
 	"bytes"
 	"fmt"
-	"math"
 	"github.com/phpdave11/gofpdi"
+	"math"
 )
 
 type Pdf struct {
@@ -41,7 +41,7 @@ type PdfCatalog struct {
 }
 
 type PdfXObject struct {
-	id       int
+	id int
 }
 
 type PdfObject struct {
@@ -147,6 +147,8 @@ func NewPdf() *Pdf {
 	pdf.resources = pdf.newResources()
 	pdf.font = pdf.newFont()
 	pdf.catalog.pageTree = pdf.pageTree
+	pdf.fpdi = gofpdi.NewImporter()
+
 	pdf.k = 1.0
 	pdf.h = 841.89
 
@@ -183,7 +185,6 @@ func (pdf *Pdf) UseImportedTemplate(tplid int, x, y, w, h float64) {
 
 	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
 }
-
 
 func (pdf *Pdf) Text(text string) {
 	var instructions string
@@ -272,48 +273,29 @@ func (pdf *Pdf) newObjId() {
 	pdf.n++
 }
 
+func (pdf *Pdf) ImportPage(sourceFile string, pageno int, box string) int {
+	pdf.fpdi.SetSourceFile(sourceFile)
+	pdf.fpdi.SetNextObjectID(pdf.n + 1)
+	return pdf.fpdi.ImportPage(pageno, box)
+}
+
 func (pdf *Pdf) Write() {
 	pdf.outln("%PDF-1.4")
 	pdf.outln("%ABCD\n")
-
-	// init gofpdi
-	pdf.fpdi = gofpdi.NewImporter()
-	pdf.fpdi.SetSourceFile("/tmp/PDFPL110.pdf")
-	pdf.fpdi.SetNextObjectID(pdf.n + 1)
-	tpl1 := pdf.fpdi.ImportPage(1, "/MediaBox")
 
 	// write imported objects
 	tplObjIds := pdf.fpdi.PutFormXobjects()
 
 	// write objects
 	objs := pdf.fpdi.GetImportedObjects()
-	for i := pdf.n; i < len(objs) + pdf.n; i++ {
+	for i := pdf.n; i < len(objs)+pdf.n; i++ {
 		if objs[i] != "" {
 			pdf.newObjId()
-//panic(fmt.Sprintf("new object: %d", pdf.n))
+			//panic(fmt.Sprintf("new object: %d", pdf.n))
 			pdf.newObj(pdf.n)
 			pdf.outln(objs[i])
 		}
 	}
-
-	// add page
-	page := pdf.AddPage()
-
-	pdf.UseImportedTemplate(tpl1, 300, -400, 300, 0)
-
-	pdf.SetFontFamily("Times-Roman")
-	pdf.SetFontSize(18)
-	pdf.SetXY(10, 600)
-	pdf.SetXY(0, 0)
-	pdf.Text( /*"こんにちは and " + */ "Hello World!")
-
-	//pdf.SetFillColor(&CMYKColor{C: 48, M: 32, Y: 0, K: 0})
-	pdf.SetFillColor(&CMYKColor{C: 0, M: 81, Y: 81, K: 45})
-	pdf.Rect(10, 200, 250, 50, "F")
-
-	pdf.SetFillColor(&CMYKColor{C: 26, M: 0, Y: 99, K: 13})
-	//pdf.Ellipse(100, 50, 30, 20, "D")
-	pdf.Circle(110, 300, 70, "F")
 
 	// write catalog
 	pdf.newObj(pdf.catalog.id)
@@ -372,17 +354,17 @@ func (pdf *Pdf) Write() {
 	// write page contents
 	pdf.newObj(pdf.page.contents.id)
 	pdf.outln("<<")
-	pdf.outln(fmt.Sprintf("  /Length %d", len(page.contents.data)))
+	pdf.outln(fmt.Sprintf("  /Length %d", len(pdf.page.contents.data)))
 	pdf.outln(">>")
 	pdf.outln("stream")
-	pdf.outln(string(page.contents.data))
+	pdf.outln(string(pdf.page.contents.data))
 	pdf.outln("endstream")
 	pdf.outln("endobj\n")
 
 	// write xref
 	pdf.newObjId()
 	pdf.outln("xref")
-	pdf.outln(fmt.Sprintf("0 %d", pdf.n - 1))
+	pdf.outln(fmt.Sprintf("0 %d", pdf.n-1))
 	pdf.outln("0000000000 65535 f ")
 
 	for i := 1; i < len(pdf.offsets); i++ {
@@ -392,7 +374,7 @@ func (pdf *Pdf) Write() {
 	// write trailer
 	pdf.outln("trailer")
 	pdf.outln("<<")
-	pdf.outln(fmt.Sprintf("  /Size %d", pdf.n - 1))
+	pdf.outln(fmt.Sprintf("  /Size %d", pdf.n-1))
 	pdf.outln(fmt.Sprintf("  /Root %d 0 R", pdf.catalog.id))
 	pdf.outln(">>")
 	pdf.outln("startxref")
