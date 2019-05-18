@@ -16,6 +16,7 @@ type Pdf struct {
 	pageTree   *PdfPageTree
 	xref       *PdfXrefTable
 	fpdi       *gofpdi.Importer
+	tplObjIds  map[string]int
 	offsets    map[int]int
 	objects    []*PdfObject
 	fontFamily string
@@ -148,9 +149,13 @@ func NewPdf() *Pdf {
 	pdf.font = pdf.newFont()
 	pdf.catalog.pageTree = pdf.pageTree
 	pdf.fpdi = gofpdi.NewImporter()
+	pdf.tplObjIds = make(map[string]int, 0)
 
 	pdf.k = 1.0
 	pdf.h = 841.89
+
+	pdf.outln("%PDF-1.4")
+	pdf.outln("%ABCD\n")
 
 	return pdf
 }
@@ -274,17 +279,17 @@ func (pdf *Pdf) newObjId() {
 }
 
 func (pdf *Pdf) ImportPage(sourceFile string, pageno int, box string) int {
+	var tplid int
+
 	pdf.fpdi.SetSourceFile(sourceFile)
 	pdf.fpdi.SetNextObjectID(pdf.n + 1)
-	return pdf.fpdi.ImportPage(pageno, box)
-}
 
-func (pdf *Pdf) Write() {
-	pdf.outln("%PDF-1.4")
-	pdf.outln("%ABCD\n")
+	tplid = pdf.fpdi.ImportPage(pageno, box)
 
 	// write imported objects
-	tplObjIds := pdf.fpdi.PutFormXobjects()
+	for tplName, objId := range pdf.fpdi.PutFormXobjects() {
+		pdf.tplObjIds[tplName] = objId
+	}
 
 	// write objects
 	objs := pdf.fpdi.GetImportedObjects()
@@ -297,6 +302,10 @@ func (pdf *Pdf) Write() {
 		}
 	}
 
+	return tplid
+}
+
+func (pdf *Pdf) Write() {
 	// write catalog
 	pdf.newObj(pdf.catalog.id)
 	pdf.outln("<<")
@@ -322,7 +331,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln(fmt.Sprintf("    /FONT1 %d 0 R", pdf.font.id))
 	pdf.outln("  >>")
 	pdf.outln("  /XObject <<")
-	for tplName, id := range tplObjIds {
+	for tplName, id := range pdf.tplObjIds {
 		pdf.outln(fmt.Sprintf("    %s %d 0 R", tplName, id))
 	}
 	pdf.outln("  >>")
