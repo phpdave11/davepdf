@@ -11,6 +11,8 @@ type Pdf struct {
 	n          int
 	w          *bytes.Buffer
 	catalog    *PdfCatalog
+	resources  *PdfResources
+	font       *PdfFont // temporary while we only use 1 font
 	pageTree   *PdfPageTree
 	xref       *PdfXrefTable
 	offsets    map[int]int
@@ -56,7 +58,6 @@ type PdfPage struct {
 	id        int
 	parent    *PdfPageTree
 	contents  *PdfContents
-	resourecs *PdfResources
 }
 
 type PdfContents struct {
@@ -69,12 +70,77 @@ type PdfResources struct {
 	objects []*PdfObject
 }
 
+type PdfFont struct {
+	id      int
+}
+
+func (pdf *Pdf) newPageTree() *PdfPageTree {
+	pageTree := &PdfPageTree{}
+
+	pdf.n++
+	pageTree.id = pdf.n
+
+	return pageTree
+}
+
+func (pdf *Pdf) newCatalog() *PdfCatalog {
+	catalog := &PdfCatalog{}
+
+	pdf.n++
+	catalog.id = pdf.n
+
+	return catalog
+}
+
+func (pdf *Pdf) newResources() *PdfResources {
+	resources := &PdfResources{}
+
+	pdf.n++
+	resources.id = pdf.n
+
+	return resources
+}
+
+func (pdf *Pdf) newContents() *PdfContents {
+	contents := &PdfContents{}
+
+	pdf.n++
+	contents.id = pdf.n
+
+	return contents
+}
+
+func (pdf *Pdf) newFont() *PdfFont {
+	font := &PdfFont{}
+
+	pdf.n++
+	font.id = pdf.n
+
+	return font
+}
+
+func (pdf *Pdf) newPage() *PdfPage {
+	page := &PdfPage{}
+
+	pdf.n++
+	page.id = pdf.n
+
+	page.parent = pdf.pageTree
+	page.contents = pdf.newContents()
+
+	pdf.pageTree.pages = append(pdf.pageTree.pages, page)
+
+	return page
+}
+
 func NewPdf() *Pdf {
 	pdf := &Pdf{}
 	pdf.offsets = make(map[int]int, 0)
 	pdf.w = new(bytes.Buffer)
-	pdf.pageTree = &PdfPageTree{}
-	pdf.catalog = &PdfCatalog{}
+	pdf.catalog = pdf.newCatalog()
+	pdf.pageTree = pdf.newPageTree()
+	pdf.resources = pdf.newResources()
+	pdf.font = pdf.newFont()
 	pdf.catalog.pageTree = pdf.pageTree
 	pdf.k = 1.0
 	pdf.h = 841.89
@@ -165,12 +231,9 @@ func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
 }
 
 func (pdf *Pdf) AddPage() *PdfPage {
-	page := &PdfPage{}
-	page.parent = pdf.pageTree
-	page.contents = &PdfContents{}
-	pdf.page = page
+	page := pdf.newPage()
 
-	pdf.pageTree.pages = append(pdf.pageTree.pages, page)
+	pdf.page = page
 
 	return page
 }
@@ -184,41 +247,67 @@ func (pdf *Pdf) out(s string) {
 	pdf.w.WriteString(s)
 }
 
-func (pdf *Pdf) newObj() {
-	pdf.offsets[pdf.n] = pdf.w.Len()
-	pdf.n++
+func (pdf *Pdf) newObj(n int) {
+	pdf.offsets[n] = pdf.w.Len()
+    pdf.outln(fmt.Sprintf("%d 0 obj", n))
 }
 
 func (pdf *Pdf) Write() {
+	// add page
+	page := pdf.AddPage()
+	//page.contents.data = []byte("BT /FONT1 18 Tf 0 0 Td (Hello World) Tj ET " + str)
+
+	pdf.SetFontFamily("Times-Roman")
+	pdf.SetFontSize(18)
+	pdf.SetXY(10, 600)
+	pdf.SetXY(0, 0)
+	pdf.Text( /*"こんにちは and " + */ "Hello World!")
+
+	//pdf.SetFillColor(&CMYKColor{C: 48, M: 32, Y: 0, K: 0})
+	pdf.SetFillColor(&CMYKColor{C: 0, M: 81, Y: 81, K: 45})
+	pdf.Rect(10, 200, 250, 50, "F")
+
+	pdf.SetFillColor(&CMYKColor{C: 26, M: 0, Y: 99, K: 13})
+	//pdf.Ellipse(100, 50, 30, 20, "D")
+	pdf.Circle(110, 300, 70, "F")
+
+
+
+
+
+
+
+
+
+
+
+
 	pdf.outln("%PDF-1.4")
 	pdf.outln("%ABCD\n")
 
 	// write catalog
-	pdf.newObj()
-	pdf.outln(fmt.Sprintf("%d 0 obj", pdf.n))
+	pdf.newObj(pdf.catalog.id)
 	pdf.outln("<<")
 	pdf.outln("  /Type /Catalog")
-	pdf.outln("  /Pages 2 0 R")
+	pdf.outln(fmt.Sprintf("  /Pages %d 0 R", pdf.pageTree.id))
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
 
 	// write page tree
-	pdf.newObj()
-	pdf.outln(fmt.Sprintf("%d 0 obj", pdf.n))
+	pdf.newObj(pdf.pageTree.id)
 	pdf.outln("<<")
 	pdf.outln("  /Type /Pages")
 	pdf.outln("  /Count 1")
-	pdf.outln("  /Kids [5 0 R]")
+	pdf.outln(fmt.Sprintf("  /Kids [%d 0 R]", pdf.page.id))
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
 
 	// write resources
-	pdf.newObj()
-	pdf.outln(fmt.Sprintf("%d 0 obj", pdf.n))
+	pdf.newObj(pdf.resources.id)
 	pdf.outln("<<")
 	pdf.outln("  /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]")
 	pdf.outln("  /Font <<")
-	pdf.outln("    /FONT1 4 0 R")
+	pdf.outln(fmt.Sprintf("    /FONT1 %d 0 R", pdf.font.id))
 	pdf.outln("  >>")
 	pdf.outln("  /XObject <<")
 	//pdf.outln("    /GOFPDITPL0 7 0 R")
@@ -227,8 +316,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln("endobj\n")
 
 	// write fonts
-	pdf.newObj()
-	pdf.outln(fmt.Sprintf("%d 0 obj", pdf.n))
+	pdf.newObj(pdf.font.id)
 	pdf.outln("<<")
 	pdf.outln("  /Type /Font")
 	pdf.outln("  /Subtype /Type1")
@@ -248,40 +336,20 @@ func (pdf *Pdf) Write() {
 		str := fmt.Sprintf("q 0 J 1 w 0 j 0 G 0 g q %.4F 0 0 %.4F %.4F %.4F cm %s Do Q Q", scaleX, scaleY, tX, tY, tplName)
 	*/
 
-	// add page
-	page := pdf.AddPage()
-	//page.contents.data = []byte("BT /FONT1 18 Tf 0 0 Td (Hello World) Tj ET " + str)
-
-	pdf.SetFontFamily("Times-Roman")
-	pdf.SetFontSize(18)
-	pdf.SetXY(10, 600)
-	pdf.SetXY(0, 0)
-	pdf.Text( /*"こんにちは and " + */ "Hello World!")
-
-	//pdf.SetFillColor(&CMYKColor{C: 48, M: 32, Y: 0, K: 0})
-	pdf.SetFillColor(&CMYKColor{C: 0, M: 81, Y: 81, K: 45})
-	pdf.Rect(10, 200, 250, 50, "F")
-
-	pdf.SetFillColor(&CMYKColor{C: 26, M: 0, Y: 99, K: 13})
-	//pdf.Ellipse(100, 50, 30, 20, "D")
-	pdf.Circle(110, 300, 70, "F")
-
 	// write page
-	pdf.newObj()
-	pdf.outln(fmt.Sprintf("%d 0 obj", pdf.n))
+	pdf.newObj(pdf.page.id)
 	pdf.outln("<<")
 	pdf.outln("  /Type /Page")
 	pdf.outln("  /MediaBox [0 0 612 500]")
 	//pdf.outln("  /MediaBox [0 0 595.28 841.89]")
-	pdf.outln("  /Parent 2 0 R")
-	pdf.outln("  /Contents 6 0 R")
-	pdf.outln("  /Resources 3 0 R")
+	pdf.outln(fmt.Sprintf("  /Parent %d 0 R", pdf.pageTree.id))
+	pdf.outln(fmt.Sprintf("  /Contents %d 0 R", pdf.page.contents.id))
+	pdf.outln(fmt.Sprintf("  /Resources %d 0 R", pdf.resources))
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
 
 	// write page contents
-	pdf.newObj()
-	pdf.outln(fmt.Sprintf("%d 0 obj", pdf.n))
+	pdf.newObj(pdf.page.contents.id)
 	pdf.outln("<<")
 	pdf.outln(fmt.Sprintf("  /Length %d", len(page.contents.data)))
 	pdf.outln(">>")
@@ -303,7 +371,7 @@ func (pdf *Pdf) Write() {
 	*/
 
 	// write xref
-	pdf.newObj()
+	pdf.n++
 	pdf.outln("xref")
 	pdf.outln(fmt.Sprintf("0 %d", pdf.n))
 	pdf.outln("0000000000 65535 f ")
@@ -315,7 +383,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln("trailer")
 	pdf.outln("<<")
 	pdf.outln(fmt.Sprintf("  /Size %d", pdf.n))
-	pdf.outln("  /Root 1 0 R")
+	pdf.outln(fmt.Sprintf("  /Root %d 0 R", pdf.catalog.id))
 	pdf.outln(">>")
 	pdf.outln("startxref")
 	pdf.outln(fmt.Sprintf("%d", pdf.offsets[pdf.n-1]))
