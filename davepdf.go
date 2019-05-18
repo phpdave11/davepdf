@@ -3,6 +3,7 @@ package davepdf
 import (
 	"bytes"
 	"fmt"
+	"math"
 	//"github.com/phpdave11/gofpdi"
 )
 
@@ -18,6 +19,8 @@ type Pdf struct {
 	fontSize   int
 	x          float64
 	y          float64
+	k          float64
+	h          float64
 	page       *PdfPage
 	fillColor  *CMYKColor
 }
@@ -73,6 +76,8 @@ func NewPdf() *Pdf {
 	pdf.pageTree = &PdfPageTree{}
 	pdf.catalog = &PdfCatalog{}
 	pdf.catalog.pageTree = pdf.pageTree
+	pdf.k = 1.0
+	pdf.h = 841.89
 
 	return pdf
 }
@@ -88,8 +93,9 @@ func (pdf *Pdf) SetFontSize(fontSize int) {
 func (pdf *Pdf) SetFillColor(c *CMYKColor) {
 	pdf.fillColor = c
 
-	pdf.page.contents.data = append(pdf.page.contents.data, []byte(fmt.Sprintf("%.5f %.5f %.5f %.5f k %% set fill color (cmyk)\n", float64(c.C)/100, float64(c.Y)/100, float64(c.M)/100, float64(c.K)/100))...)
-
+	var instructions string
+	instructions += fmt.Sprintf("%-60s %% set fill color (cmyk)\n", fmt.Sprintf("%.5f %.5f %.5f %.5f k", float64(c.C)/100, float64(c.M)/100, float64(c.Y)/100, float64(c.K)/100))
+	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
 }
 
 func (pdf *Pdf) SetXY(x, y float64) {
@@ -100,11 +106,11 @@ func (pdf *Pdf) SetXY(x, y float64) {
 func (pdf *Pdf) Text(text string) {
 	var instructions string
 
-	instructions += fmt.Sprintf("%-50s %% begin text\n", "BT")
-	instructions += fmt.Sprintf("  %-48s %% set font family and font size\n", fmt.Sprintf("%s %d Tf", pdf.fontFamily, pdf.fontSize))
-	instructions += fmt.Sprintf("  %-48s %% set position to draw text\n", fmt.Sprintf("%f %f Td", pdf.x, pdf.y))
-	instructions += fmt.Sprintf("  %-48s %% write text\n", fmt.Sprintf("(%s)Tj", text))
-	instructions += fmt.Sprintf("%-50s %% end text\n", "ET")
+	instructions += fmt.Sprintf("%-60s %% begin text\n", "BT")
+	instructions += fmt.Sprintf("  %-58s %% set font family and font size\n", fmt.Sprintf("%s %d Tf", pdf.fontFamily, pdf.fontSize))
+	instructions += fmt.Sprintf("  %-58s %% set position to draw text\n", fmt.Sprintf("%f %f Td", pdf.x, pdf.y))
+	instructions += fmt.Sprintf("  %-58s %% write text\n", fmt.Sprintf("(%s)Tj", text))
+	instructions += fmt.Sprintf("%-60s %% end text\n", "ET")
 
 	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
 }
@@ -112,7 +118,48 @@ func (pdf *Pdf) Text(text string) {
 func (pdf *Pdf) Rect(x, y, w, h float64, mode string) {
 	var instructions string
 
-	instructions += fmt.Sprintf("%-50s %% draw rectangle\n", fmt.Sprintf("%.5f %.5f %.5f %.5f re %s", x, y, w, h, mode))
+	instructions += fmt.Sprintf("%-60s %% draw rectangle\n", fmt.Sprintf("%.5f %.5f %.5f %.5f re %s", x, y, w, h, mode))
+
+	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
+}
+
+func (pdf *Pdf) Circle(x, y, r float64, style string) {
+	pdf.Ellipse(x, y, r, r, style)
+}
+
+func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
+    var instructions string
+
+	var op string
+	var lx, ly, k/*, h*/ float64
+
+	if style == "F" {
+		op = "f"
+	} else if style == "FD" || style == "DF" {
+		op = "B"
+	} else {
+		op = "S"
+	}
+
+	M_SQRT2 := math.Sqrt(2)
+
+	lx = 4.0 / 3.0 * (M_SQRT2 - 1.0) * rx
+	ly = 4.0 / 3.0 * (M_SQRT2 - 1.0) * ry
+	k = pdf.k
+
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 1\n", fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (y)*k, (x+rx)*k, ((y-ly))*k, (x+lx)*k, ((y-ry))*k, x*k, ((y-ry))*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 2\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, ((y-ry))*k, (x-rx)*k, ((y-ly))*k, (x-rx)*k, (y)*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, ((y+ly))*k, (x-lx)*k, ((y+ry))*k, x*k, ((y+ry))*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, ((y+ry))*k, (x+rx)*k, ((y+ly))*k, (x+rx)*k, (y)*k, op))
+
+	// the following code makes everything start from the top based on height of page (pdf.h)
+	/*
+	h = pdf.h
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 1\n", fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (h-y)*k, (x+rx)*k, (h-(y-ly))*k, (x+lx)*k, (h-(y-ry))*k, x*k, (h-(y-ry))*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 2\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, (h-(y-ry))*k, (x-rx)*k, (h-(y-ly))*k, (x-rx)*k, (h-y)*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (h-(y+ly))*k, (x-lx)*k, (h-(y+ry))*k, x*k, (h-(y+ry))*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (h-(y+ry))*k, (x+rx)*k, (h-(y+ly))*k, (x+rx)*k, (h-y)*k, op))
+    */
 
 	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
 }
@@ -213,14 +260,19 @@ func (pdf *Pdf) Write() {
 
 	//pdf.SetFillColor(&CMYKColor{C: 48, M: 32, Y: 0, K: 0})
 	pdf.SetFillColor(&CMYKColor{C: 0, M: 81, Y: 81, K: 45})
-	pdf.Rect(10, 100, 150, 50, "F")
+	pdf.Rect(10, 200, 250, 50, "F")
+
+	pdf.SetFillColor(&CMYKColor{C: 26, M: 0, Y: 99, K: 13})
+	//pdf.Ellipse(100, 50, 30, 20, "D")
+	pdf.Circle(110, 300, 70, "F")
 
 	// write page
 	pdf.newObj()
 	pdf.outln(fmt.Sprintf("%d 0 obj", pdf.n))
 	pdf.outln("<<")
 	pdf.outln("  /Type /Page")
-	pdf.outln("  /MediaBox [0 0 612 792]")
+	pdf.outln("  /MediaBox [0 0 612 500]")
+	//pdf.outln("  /MediaBox [0 0 595.28 841.89]")
 	pdf.outln("  /Parent 2 0 R")
 	pdf.outln("  /Contents 6 0 R")
 	pdf.outln("  /Resources 3 0 R")
