@@ -55,9 +55,9 @@ type PdfPageTree struct {
 }
 
 type PdfPage struct {
-	id        int
-	parent    *PdfPageTree
-	contents  *PdfContents
+	id       int
+	parent   *PdfPageTree
+	contents *PdfContents
 }
 
 type PdfContents struct {
@@ -71,7 +71,7 @@ type PdfResources struct {
 }
 
 type PdfFont struct {
-	id      int
+	id int
 }
 
 func (pdf *Pdf) newPageTree() *PdfPageTree {
@@ -194,10 +194,10 @@ func (pdf *Pdf) Circle(x, y, r float64, style string) {
 }
 
 func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
-    var instructions string
+	var instructions string
 
 	var op string
-	var lx, ly, k/*, h*/ float64
+	var lx, ly, k /*, h*/ float64
 
 	if style == "F" {
 		op = "f"
@@ -213,19 +213,19 @@ func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
 	ly = 4.0 / 3.0 * (M_SQRT2 - 1.0) * ry
 	k = pdf.k
 
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 1\n", fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (y)*k, (x+rx)*k, ((y-ly))*k, (x+lx)*k, ((y-ry))*k, x*k, ((y-ry))*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 2\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, ((y-ry))*k, (x-rx)*k, ((y-ly))*k, (x-rx)*k, (y)*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, ((y+ly))*k, (x-lx)*k, ((y+ry))*k, x*k, ((y+ry))*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, ((y+ry))*k, (x+rx)*k, ((y+ly))*k, (x+rx)*k, (y)*k, op))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 1\n", fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (y)*k, (x+rx)*k, (y-ly)*k, (x+lx)*k, (y-ry)*k, x*k, (y-ry)*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 2\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, (y-ry)*k, (x-rx)*k, (y-ly)*k, (x-rx)*k, (y)*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (y+ly)*k, (x-lx)*k, (y+ry)*k, x*k, (y+ry)*k))
+	instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (y+ry)*k, (x+rx)*k, (y+ly)*k, (x+rx)*k, (y)*k, op))
 
 	// the following code makes everything start from the top based on height of page (pdf.h)
 	/*
-	h = pdf.h
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 1\n", fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (h-y)*k, (x+rx)*k, (h-(y-ly))*k, (x+lx)*k, (h-(y-ry))*k, x*k, (h-(y-ry))*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 2\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, (h-(y-ry))*k, (x-rx)*k, (h-(y-ly))*k, (x-rx)*k, (h-y)*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (h-(y+ly))*k, (x-lx)*k, (h-(y+ry))*k, x*k, (h-(y+ry))*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (h-(y+ry))*k, (x+rx)*k, (h-(y+ly))*k, (x+rx)*k, (h-y)*k, op))
-    */
+		h = pdf.h
+		instructions += fmt.Sprintf("%-60s %% draw ellipse part 1\n", fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (h-y)*k, (x+rx)*k, (h-(y-ly))*k, (x+lx)*k, (h-(y-ry))*k, x*k, (h-(y-ry))*k))
+		instructions += fmt.Sprintf("%-60s %% draw ellipse part 2\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, (h-(y-ry))*k, (x-rx)*k, (h-(y-ly))*k, (x-rx)*k, (h-y)*k))
+		instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (h-(y+ly))*k, (x-lx)*k, (h-(y+ry))*k, x*k, (h-(y+ry))*k))
+		instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (h-(y+ry))*k, (x+rx)*k, (h-(y+ly))*k, (x+rx)*k, (h-y)*k, op))
+	*/
 
 	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
 }
@@ -249,7 +249,7 @@ func (pdf *Pdf) out(s string) {
 
 func (pdf *Pdf) newObj(n int) {
 	pdf.offsets[n] = pdf.w.Len()
-    pdf.outln(fmt.Sprintf("%d 0 obj", n))
+	pdf.outln(fmt.Sprintf("%d 0 obj", n))
 }
 
 func (pdf *Pdf) Write() {
@@ -270,17 +270,6 @@ func (pdf *Pdf) Write() {
 	pdf.SetFillColor(&CMYKColor{C: 26, M: 0, Y: 99, K: 13})
 	//pdf.Ellipse(100, 50, 30, 20, "D")
 	pdf.Circle(110, 300, 70, "F")
-
-
-
-
-
-
-
-
-
-
-
 
 	pdf.outln("%PDF-1.4")
 	pdf.outln("%ABCD\n")
