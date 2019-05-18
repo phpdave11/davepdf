@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"math"
-	//"github.com/phpdave11/gofpdi"
+	"github.com/phpdave11/gofpdi"
 )
 
 type Pdf struct {
@@ -15,6 +15,7 @@ type Pdf struct {
 	font       *PdfFont // temporary while we only use 1 font
 	pageTree   *PdfPageTree
 	xref       *PdfXrefTable
+	fpdi       *gofpdi.Importer
 	offsets    map[int]int
 	objects    []*PdfObject
 	fontFamily string
@@ -37,6 +38,10 @@ type CMYKColor struct {
 type PdfCatalog struct {
 	id       int
 	pageTree *PdfPageTree
+}
+
+type PdfXObject struct {
+	id       int
 }
 
 type PdfObject struct {
@@ -77,7 +82,7 @@ type PdfFont struct {
 func (pdf *Pdf) newPageTree() *PdfPageTree {
 	pageTree := &PdfPageTree{}
 
-	pdf.n++
+	pdf.newObjId()
 	pageTree.id = pdf.n
 
 	return pageTree
@@ -86,7 +91,7 @@ func (pdf *Pdf) newPageTree() *PdfPageTree {
 func (pdf *Pdf) newCatalog() *PdfCatalog {
 	catalog := &PdfCatalog{}
 
-	pdf.n++
+	pdf.newObjId()
 	catalog.id = pdf.n
 
 	return catalog
@@ -95,7 +100,7 @@ func (pdf *Pdf) newCatalog() *PdfCatalog {
 func (pdf *Pdf) newResources() *PdfResources {
 	resources := &PdfResources{}
 
-	pdf.n++
+	pdf.newObjId()
 	resources.id = pdf.n
 
 	return resources
@@ -104,7 +109,7 @@ func (pdf *Pdf) newResources() *PdfResources {
 func (pdf *Pdf) newContents() *PdfContents {
 	contents := &PdfContents{}
 
-	pdf.n++
+	pdf.newObjId()
 	contents.id = pdf.n
 
 	return contents
@@ -113,7 +118,7 @@ func (pdf *Pdf) newContents() *PdfContents {
 func (pdf *Pdf) newFont() *PdfFont {
 	font := &PdfFont{}
 
-	pdf.n++
+	pdf.newObjId()
 	font.id = pdf.n
 
 	return font
@@ -122,7 +127,7 @@ func (pdf *Pdf) newFont() *PdfFont {
 func (pdf *Pdf) newPage() *PdfPage {
 	page := &PdfPage{}
 
-	pdf.n++
+	pdf.newObjId()
 	page.id = pdf.n
 
 	page.parent = pdf.pageTree
@@ -168,6 +173,17 @@ func (pdf *Pdf) SetXY(x, y float64) {
 	pdf.x = x
 	pdf.y = y
 }
+
+func (pdf *Pdf) UseImportedTemplate(tplid int, x, y, w, h float64) {
+	var instructions string
+
+	// get gofpdi template values
+	tplName, scaleX, scaleY, tX, tY := pdf.fpdi.UseTemplate(tplid, x, y, w, h)
+	instructions += fmt.Sprintf("q 0 J 1 w 0 j 0 G 0 g q %.4F 0 0 %.4F %.4F %.4F cm %s Do Q Q %% draw template\n", scaleX, scaleY, tX, tY, tplName)
+
+	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
+}
+
 
 func (pdf *Pdf) Text(text string) {
 	var instructions string
@@ -252,10 +268,38 @@ func (pdf *Pdf) newObj(n int) {
 	pdf.outln(fmt.Sprintf("%d 0 obj", n))
 }
 
+func (pdf *Pdf) newObjId() {
+	pdf.n++
+}
+
 func (pdf *Pdf) Write() {
+	pdf.outln("%PDF-1.4")
+	pdf.outln("%ABCD\n")
+
+	// init gofpdi
+	pdf.fpdi = gofpdi.NewImporter()
+	pdf.fpdi.SetSourceFile("/tmp/PDFPL110.pdf")
+	pdf.fpdi.SetNextObjectID(pdf.n + 1)
+	tpl1 := pdf.fpdi.ImportPage(1, "/MediaBox")
+
+	// write imported objects
+	tplObjIds := pdf.fpdi.PutFormXobjects()
+
+	// write objects
+	objs := pdf.fpdi.GetImportedObjects()
+	for i := pdf.n; i < len(objs) + pdf.n; i++ {
+		if objs[i] != "" {
+			pdf.newObjId()
+//panic(fmt.Sprintf("new object: %d", pdf.n))
+			pdf.newObj(pdf.n)
+			pdf.outln(objs[i])
+		}
+	}
+
 	// add page
 	page := pdf.AddPage()
-	//page.contents.data = []byte("BT /FONT1 18 Tf 0 0 Td (Hello World) Tj ET " + str)
+
+	pdf.UseImportedTemplate(tpl1, 300, -400, 300, 0)
 
 	pdf.SetFontFamily("Times-Roman")
 	pdf.SetFontSize(18)
@@ -270,9 +314,6 @@ func (pdf *Pdf) Write() {
 	pdf.SetFillColor(&CMYKColor{C: 26, M: 0, Y: 99, K: 13})
 	//pdf.Ellipse(100, 50, 30, 20, "D")
 	pdf.Circle(110, 300, 70, "F")
-
-	pdf.outln("%PDF-1.4")
-	pdf.outln("%ABCD\n")
 
 	// write catalog
 	pdf.newObj(pdf.catalog.id)
@@ -299,7 +340,9 @@ func (pdf *Pdf) Write() {
 	pdf.outln(fmt.Sprintf("    /FONT1 %d 0 R", pdf.font.id))
 	pdf.outln("  >>")
 	pdf.outln("  /XObject <<")
-	//pdf.outln("    /GOFPDITPL0 7 0 R")
+	for tplName, id := range tplObjIds {
+		pdf.outln(fmt.Sprintf("    %s %d 0 R", tplName, id))
+	}
 	pdf.outln("  >>")
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
@@ -313,17 +356,6 @@ func (pdf *Pdf) Write() {
 	pdf.outln("  /BaseFont /Times-Roman")
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
-	/*
-		// init gofpdi
-		fpdi := gofpdi.NewImporter()
-		fpdi.SetSourceFile("/Users/dave/Desktop/PDFPL110.pdf")
-		fpdi.SetNextObjectID(7)
-		tpl1 := fpdi.ImportPage(1, "/MediaBox")
-
-		// get gofpdi template values
-		tplName, scaleX, scaleY, tX, tY := fpdi.UseTemplate(tpl1, 0, -400, 400, 0)
-		str := fmt.Sprintf("q 0 J 1 w 0 j 0 G 0 g q %.4F 0 0 %.4F %.4F %.4F cm %s Do Q Q", scaleX, scaleY, tX, tY, tplName)
-	*/
 
 	// write page
 	pdf.newObj(pdf.page.id)
@@ -333,7 +365,7 @@ func (pdf *Pdf) Write() {
 	//pdf.outln("  /MediaBox [0 0 595.28 841.89]")
 	pdf.outln(fmt.Sprintf("  /Parent %d 0 R", pdf.pageTree.id))
 	pdf.outln(fmt.Sprintf("  /Contents %d 0 R", pdf.page.contents.id))
-	pdf.outln(fmt.Sprintf("  /Resources %d 0 R", pdf.resources))
+	pdf.outln(fmt.Sprintf("  /Resources %d 0 R", pdf.resources.id))
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
 
@@ -347,31 +379,20 @@ func (pdf *Pdf) Write() {
 	pdf.outln("endstream")
 	pdf.outln("endobj\n")
 
-	/*
-		// write imported objects
-		fpdi.PutFormXobjects()
-
-		objs := fpdi.GetImportedObjects()
-		for i := 7; i < len(objs)+7; i++ {
-			pdf.newObj()
-			pdf.outln(fmt.Sprintf("%d 0 obj", i))
-			pdf.outln(objs[i])
-		}
-	*/
-
 	// write xref
-	pdf.n++
+	pdf.newObjId()
 	pdf.outln("xref")
-	pdf.outln(fmt.Sprintf("0 %d", pdf.n))
+	pdf.outln(fmt.Sprintf("0 %d", pdf.n - 1))
 	pdf.outln("0000000000 65535 f ")
-	for i := 0; i < len(pdf.offsets); i++ {
+
+	for i := 1; i < len(pdf.offsets); i++ {
 		pdf.outln(fmt.Sprintf("%010d 00000 n ", pdf.offsets[i]))
 	}
 
 	// write trailer
 	pdf.outln("trailer")
 	pdf.outln("<<")
-	pdf.outln(fmt.Sprintf("  /Size %d", pdf.n))
+	pdf.outln(fmt.Sprintf("  /Size %d", pdf.n - 1))
 	pdf.outln(fmt.Sprintf("  /Root %d 0 R", pdf.catalog.id))
 	pdf.outln(">>")
 	pdf.outln("startxref")
