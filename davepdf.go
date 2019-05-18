@@ -375,7 +375,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln("xref")
 	pdf.outln(fmt.Sprintf("0 %d", pdf.n))
 	pdf.outln("0000000000 65535 f ")
-	for i := 0; i < len(pdf.offsets)-1; i++ {
+	for i := 0; i < len(pdf.offsets); i++ {
 		pdf.outln(fmt.Sprintf("%010d 00000 n ", pdf.offsets[i]))
 	}
 
