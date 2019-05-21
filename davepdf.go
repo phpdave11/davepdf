@@ -26,7 +26,7 @@ type Pdf struct {
 	k          float64
 	h          float64
 	page       *PdfPage
-	fillColor  *CMYKColor
+	fillColor  *Color
 }
 
 type CMYKColor struct {
@@ -34,6 +34,25 @@ type CMYKColor struct {
 	Y int
 	M int
 	K int
+}
+
+type RGBColor struct {
+	R int
+	G int
+	B int
+}
+
+type ColorSpace uint
+
+const (
+	ColorSpaceCMYK ColorSpace = iota
+	ColorSpaceRGB
+)
+
+type Color struct {
+	colorSpace ColorSpace
+	cmyk       *CMYKColor
+	rgb        *RGBColor
 }
 
 type PdfCatalog struct {
@@ -168,11 +187,11 @@ func (pdf *Pdf) SetFontSize(fontSize int) {
 	pdf.fontSize = fontSize
 }
 
-func (pdf *Pdf) SetFillColor(c *CMYKColor) {
-	pdf.fillColor = c
+func (pdf *Pdf) SetFillColorCMYK(c, m, y, k int) {
+	pdf.fillColor = &Color{colorSpace: ColorSpaceCMYK, cmyk: &CMYKColor{C: c, M: m, Y: y, K: k}}
 
 	var instructions string
-	instructions += fmt.Sprintf("%-60s %% set fill color (cmyk)\n", fmt.Sprintf("%.5f %.5f %.5f %.5f k", float64(c.C)/100, float64(c.M)/100, float64(c.Y)/100, float64(c.K)/100))
+	instructions += fmt.Sprintf("%-60s %% set fill color (cmyk)\n", fmt.Sprintf("%.5f %.5f %.5f %.5f k", float64(pdf.fillColor.cmyk.C)/100, float64(pdf.fillColor.cmyk.M)/100, float64(pdf.fillColor.cmyk.Y)/100, float64(pdf.fillColor.cmyk.K)/100))
 	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
 }
 
