@@ -1,9 +1,10 @@
 package davepdf
 
 type PdfPage struct {
-	id       int
-	parent   *PdfPageTree
-	contents *PdfContents
+	id           int
+	parent       *PdfPageTree
+	instructions *PdfInstructions // to be compiled into contents below
+	contents     *PdfContents
 }
 
 func (pdf *Pdf) newPage() *PdfPage {
@@ -14,6 +15,7 @@ func (pdf *Pdf) newPage() *PdfPage {
 
 	page.parent = pdf.pageTree
 	page.contents = pdf.newContents()
+	page.instructions = pdf.newInstructions()
 
 	pdf.pageTree.pages = append(pdf.pageTree.pages, page)
 

@@ -61,9 +61,7 @@ func (pdf *Pdf) SetFontSize(fontSize int) {
 func (pdf *Pdf) SetFillColorCMYK(c, m, y, k int) {
 	pdf.fillColor = &Color{colorSpace: ColorSpaceCMYK, cmyk: &CMYKColor{C: c, M: m, Y: y, K: k}}
 
-	var instructions string
-	instructions += fmt.Sprintf("%-60s %% set fill color (cmyk)\n", fmt.Sprintf("%.5f %.5f %.5f %.5f k", float64(pdf.fillColor.cmyk.C)/100, float64(pdf.fillColor.cmyk.M)/100, float64(pdf.fillColor.cmyk.Y)/100, float64(pdf.fillColor.cmyk.K)/100))
-	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
+	pdf.page.instructions.add(fmt.Sprintf("%.5f %.5f %.5f %.5f k", float64(pdf.fillColor.cmyk.C)/100, float64(pdf.fillColor.cmyk.M)/100, float64(pdf.fillColor.cmyk.Y)/100, float64(pdf.fillColor.cmyk.K)/100), "set fill color (cmyk)")
 }
 
 func (pdf *Pdf) SetXY(x, y float64) {
@@ -72,33 +70,21 @@ func (pdf *Pdf) SetXY(x, y float64) {
 }
 
 func (pdf *Pdf) UseImportedTemplate(tplid int, x, y, w, h float64) {
-	var instructions string
-
 	// get gofpdi template values
 	tplName, scaleX, scaleY, tX, tY := pdf.fpdi.UseTemplate(tplid, x, y, w, h)
-	instructions += fmt.Sprintf("q 0 J 1 w 0 j 0 G 0 g q %.4F 0 0 %.4F %.4F %.4F cm %s Do Q Q %% draw template\n", scaleX, scaleY, tX, tY, tplName)
-
-	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
+	pdf.page.instructions.add(fmt.Sprintf("q 0 J 1 w 0 j 0 G 0 g q %.4F 0 0 %.4F %.4F %.4F cm %s Do Q Q", scaleX, scaleY, tX, tY, tplName), "draw template")
 }
 
 func (pdf *Pdf) Text(text string) {
-	var instructions string
-
-	instructions += fmt.Sprintf("%-60s %% begin text\n", "BT")
-	instructions += fmt.Sprintf("  %-58s %% set font family and font size\n", fmt.Sprintf("%s %d Tf", pdf.fontFamily, pdf.fontSize))
-	instructions += fmt.Sprintf("  %-58s %% set position to draw text\n", fmt.Sprintf("%f %f Td", pdf.x, pdf.y))
-	instructions += fmt.Sprintf("  %-58s %% write text\n", fmt.Sprintf("(%s)Tj", text))
-	instructions += fmt.Sprintf("%-60s %% end text\n", "ET")
-
-	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
+	pdf.page.instructions.add(fmt.Sprintf("%-60s", "BT"), "begin text")
+	pdf.page.instructions.add(fmt.Sprintf("  %-58s", fmt.Sprintf("%s %d Tf", pdf.fontFamily, pdf.fontSize)), "set font family and font size")
+	pdf.page.instructions.add(fmt.Sprintf("  %-58s", fmt.Sprintf("%f %f Td", pdf.x, pdf.y)), "set position to draw text")
+	pdf.page.instructions.add(fmt.Sprintf("  %-58s", fmt.Sprintf("(%s)Tj", text)), "write text")
+	pdf.page.instructions.add(fmt.Sprintf("%-60s", "ET"), "end text")
 }
 
 func (pdf *Pdf) Rect(x, y, w, h float64, mode string) {
-	var instructions string
-
-	instructions += fmt.Sprintf("%-60s %% draw rectangle\n", fmt.Sprintf("%.5f %.5f %.5f %.5f re %s", x, y, w, h, mode))
-
-	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
+	pdf.page.instructions.add(fmt.Sprintf("%.5f %.5f %.5f %.5f re %s", x, y, w, h, mode), "draw rectangle")
 }
 
 func (pdf *Pdf) Circle(x, y, r float64, style string) {
@@ -106,8 +92,6 @@ func (pdf *Pdf) Circle(x, y, r float64, style string) {
 }
 
 func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
-	var instructions string
-
 	var op string
 	var lx, ly, k /*, h*/ float64
 
@@ -125,10 +109,10 @@ func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
 	ly = 4.0 / 3.0 * (M_SQRT2 - 1.0) * ry
 	k = pdf.k
 
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 1\n", fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (y)*k, (x+rx)*k, (y-ly)*k, (x+lx)*k, (y-ry)*k, x*k, (y-ry)*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 2\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, (y-ry)*k, (x-rx)*k, (y-ly)*k, (x-rx)*k, (y)*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (y+ly)*k, (x-lx)*k, (y+ry)*k, x*k, (y+ry)*k))
-	instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (y+ry)*k, (x+rx)*k, (y+ly)*k, (x+rx)*k, (y)*k, op))
+	pdf.page.instructions.add(fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (y)*k, (x+rx)*k, (y-ly)*k, (x+lx)*k, (y-ry)*k, x*k, (y-ry)*k), "draw ellipse part 1")
+	pdf.page.instructions.add(fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, (y-ry)*k, (x-rx)*k, (y-ly)*k, (x-rx)*k, (y)*k), "draw ellipse part 2")
+	pdf.page.instructions.add(fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (y+ly)*k, (x-lx)*k, (y+ry)*k, x*k, (y+ry)*k), "draw ellipse part 3")
+	pdf.page.instructions.add(fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (y+ry)*k, (x+rx)*k, (y+ly)*k, (x+rx)*k, (y)*k, op), "draw ellipse part 4")
 
 	// the following code makes everything start from the top based on height of page (pdf.h)
 	/*
@@ -138,8 +122,6 @@ func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
 		instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (h-(y+ly))*k, (x-lx)*k, (h-(y+ry))*k, x*k, (h-(y+ry))*k))
 		instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (h-(y+ry))*k, (x+rx)*k, (h-(y+ly))*k, (x+rx)*k, (h-y)*k, op))
 	*/
-
-	pdf.page.contents.data = append(pdf.page.contents.data, []byte(instructions)...)
 }
 
 func (pdf *Pdf) AddPage() *PdfPage {
@@ -256,7 +238,7 @@ func (pdf *Pdf) Write() {
 	pdf.outln(fmt.Sprintf("  /Length %d", len(pdf.page.contents.data)))
 	pdf.outln(">>")
 	pdf.outln("stream")
-	pdf.outln(string(pdf.page.contents.data))
+	pdf.outln(pdf.page.instructions.String())
 	pdf.outln("endstream")
 	pdf.outln("endobj\n")
 

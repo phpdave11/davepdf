@@ -5,4 +5,3 @@ type PdfObject struct {
 	dictionary map[string]string
 	data       []byte
 }
-

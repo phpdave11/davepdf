@@ -13,4 +13,3 @@ func (pdf *Pdf) newResources() *PdfResources {
 
 	return resources
 }
-

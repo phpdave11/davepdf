@@ -12,4 +12,3 @@ func (pdf *Pdf) newFont() *PdfFont {
 
 	return font
 }
-

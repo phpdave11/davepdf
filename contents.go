@@ -13,4 +13,3 @@ func (pdf *Pdf) newContents() *PdfContents {
 
 	return contents
 }
-
