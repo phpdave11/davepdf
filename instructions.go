@@ -35,7 +35,7 @@ func (ins *PdfInstructions) String() string {
 		instruction := ins.instructions[i]
 
 		// Append result
-		result += fmt.Sprintf("%-"+fmt.Sprintf("%d", maxLen + 2)+"s %% %s\n", instruction.code, instruction.comments)
+		result += fmt.Sprintf("%-"+fmt.Sprintf("%d", maxLen+2)+"s %% %s\n", instruction.code, instruction.comments)
 	}
 
 	return result
