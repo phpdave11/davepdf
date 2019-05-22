@@ -24,6 +24,14 @@ func (pdf *Pdf) newPage() *PdfPage {
 	return page
 }
 
+func (pdf *Pdf) AddPage() *PdfPage {
+	page := pdf.newPage()
+
+	pdf.page = page
+
+	return page
+}
+
 func (pdf *Pdf) writePage() {
 	pdf.newObj(pdf.page.id)
 	pdf.outln("<<")

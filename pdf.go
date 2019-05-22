@@ -104,14 +104,6 @@ func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
 	*/
 }
 
-func (pdf *Pdf) AddPage() *PdfPage {
-	page := pdf.newPage()
-
-	pdf.page = page
-
-	return page
-}
-
 func (pdf *Pdf) outln(s string) {
 	pdf.w.WriteString(s)
 	pdf.w.WriteString("\n")
@@ -119,15 +111,6 @@ func (pdf *Pdf) outln(s string) {
 
 func (pdf *Pdf) out(s string) {
 	pdf.w.WriteString(s)
-}
-
-func (pdf *Pdf) newObj(n int) {
-	pdf.offsets[n] = pdf.w.Len()
-	pdf.outln(fmt.Sprintf("%d 0 obj", n))
-}
-
-func (pdf *Pdf) newObjId() {
-	pdf.n++
 }
 
 func (pdf *Pdf) Write() {
