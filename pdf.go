@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/phpdave11/gofpdi"
-	"math"
 )
 
 type Pdf struct {
@@ -53,55 +52,6 @@ func NewPdf() *Pdf {
 func (pdf *Pdf) SetXY(x, y float64) {
 	pdf.x = x
 	pdf.y = y
-}
-
-func (pdf *Pdf) Text(text string) {
-	pdf.page.instructions.add("BT", "begin text")
-	pdf.page.instructions.add(fmt.Sprintf("  %s %d Tf", pdf.fontFamily, pdf.fontSize), "set font family and font size")
-	pdf.page.instructions.add(fmt.Sprintf("  %f %f Td", pdf.x, pdf.y), "set position to draw text")
-	pdf.page.instructions.add(fmt.Sprintf("  (%s)Tj", text), "write text")
-	pdf.page.instructions.add("ET", "end text")
-}
-
-func (pdf *Pdf) Rect(x, y, w, h float64, mode string) {
-	pdf.page.instructions.add(fmt.Sprintf("%.5f %.5f %.5f %.5f re %s", x, y, w, h, mode), "draw rectangle")
-}
-
-func (pdf *Pdf) Circle(x, y, r float64, style string) {
-	pdf.Ellipse(x, y, r, r, style)
-}
-
-func (pdf *Pdf) Ellipse(x, y, rx, ry float64, style string) {
-	var op string
-	var lx, ly, k /*, h*/ float64
-
-	if style == "F" {
-		op = "f"
-	} else if style == "FD" || style == "DF" {
-		op = "B"
-	} else {
-		op = "S"
-	}
-
-	M_SQRT2 := math.Sqrt(2)
-
-	lx = 4.0 / 3.0 * (M_SQRT2 - 1.0) * rx
-	ly = 4.0 / 3.0 * (M_SQRT2 - 1.0) * ry
-	k = pdf.k
-
-	pdf.page.instructions.add(fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (y)*k, (x+rx)*k, (y-ly)*k, (x+lx)*k, (y-ry)*k, x*k, (y-ry)*k), "draw ellipse part 1")
-	pdf.page.instructions.add(fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, (y-ry)*k, (x-rx)*k, (y-ly)*k, (x-rx)*k, (y)*k), "draw ellipse part 2")
-	pdf.page.instructions.add(fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (y+ly)*k, (x-lx)*k, (y+ry)*k, x*k, (y+ry)*k), "draw ellipse part 3")
-	pdf.page.instructions.add(fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (y+ry)*k, (x+rx)*k, (y+ly)*k, (x+rx)*k, (y)*k, op), "draw ellipse part 4")
-
-	// the following code makes everything start from the top based on height of page (pdf.h)
-	/*
-		h = pdf.h
-		instructions += fmt.Sprintf("%-60s %% draw ellipse part 1\n", fmt.Sprintf("%.2F %.2F m %.2F %.2F %.2F %.2F %.2F %.2F c", (x+rx)*k, (h-y)*k, (x+rx)*k, (h-(y-ly))*k, (x+lx)*k, (h-(y-ry))*k, x*k, (h-(y-ry))*k))
-		instructions += fmt.Sprintf("%-60s %% draw ellipse part 2\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-lx)*k, (h-(y-ry))*k, (x-rx)*k, (h-(y-ly))*k, (x-rx)*k, (h-y)*k))
-		instructions += fmt.Sprintf("%-60s %% draw ellipse part 3\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c", (x-rx)*k, (h-(y+ly))*k, (x-lx)*k, (h-(y+ry))*k, x*k, (h-(y+ry))*k))
-		instructions += fmt.Sprintf("%-60s %% draw ellipse part 4\n", fmt.Sprintf("%.2F %.2F %.2F %.2F %.2F %.2F c %s", (x+lx)*k, (h-(y+ry))*k, (x+rx)*k, (h-(y+ly))*k, (x+rx)*k, (h-y)*k, op))
-	*/
 }
 
 func (pdf *Pdf) outln(s string) {

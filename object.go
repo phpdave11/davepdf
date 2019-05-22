@@ -1,5 +1,7 @@
 package davepdf
 
+import "fmt"
+
 type PdfObject struct {
 	id         int
 	dictionary map[string]string

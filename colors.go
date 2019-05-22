@@ -1,5 +1,7 @@
 package davepdf
 
+import "fmt"
+
 type CMYKColor struct {
 	C int
 	Y int
