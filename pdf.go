@@ -131,28 +131,13 @@ func (pdf *Pdf) newObjId() {
 }
 
 func (pdf *Pdf) Write() {
-	// write catalog
 	pdf.writeCatalog()
-
-	// write page tree
 	pdf.writePageTree()
-
-	// write resources
 	pdf.writeResources()
-
-	// write fonts
 	pdf.writeFonts()
-
-	// write page
 	pdf.writePage()
-
-	// write page contents
 	pdf.writeContents()
-
-	// write xref
 	pdf.writeXref()
-
-	// write trailer
 	pdf.writeTrailer()
 
 	// output PDF
