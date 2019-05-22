@@ -146,88 +146,29 @@ func (pdf *Pdf) newObjId() {
 
 func (pdf *Pdf) Write() {
 	// write catalog
-	pdf.newObj(pdf.catalog.id)
-	pdf.outln("<<")
-	pdf.outln("  /Type /Catalog")
-	pdf.outln(fmt.Sprintf("  /Pages %d 0 R", pdf.pageTree.id))
-	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.writeCatalog()
 
 	// write page tree
-	pdf.newObj(pdf.pageTree.id)
-	pdf.outln("<<")
-	pdf.outln("  /Type /Pages")
-	pdf.outln("  /Count 1")
-	pdf.outln(fmt.Sprintf("  /Kids [%d 0 R]", pdf.page.id))
-	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.writePageTree()
 
 	// write resources
-	pdf.newObj(pdf.resources.id)
-	pdf.outln("<<")
-	pdf.outln("  /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]")
-	pdf.outln("  /Font <<")
-	pdf.outln(fmt.Sprintf("    /FONT1 %d 0 R", pdf.font.id))
-	pdf.outln("  >>")
-	pdf.outln("  /XObject <<")
-	for tplName, id := range pdf.tplObjIds {
-		pdf.outln(fmt.Sprintf("    %s %d 0 R", tplName, id))
-	}
-	pdf.outln("  >>")
-	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.writeResources()
 
 	// write fonts
-	pdf.newObj(pdf.font.id)
-	pdf.outln("<<")
-	pdf.outln("  /Type /Font")
-	pdf.outln("  /Subtype /Type1")
-	pdf.outln("  /Name /FONT1")
-	pdf.outln("  /BaseFont /Times-Roman")
-	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.writeFonts()
 
 	// write page
-	pdf.newObj(pdf.page.id)
-	pdf.outln("<<")
-	pdf.outln("  /Type /Page")
-	pdf.outln("  /MediaBox [0 0 612 500]")
-	//pdf.outln("  /MediaBox [0 0 595.28 841.89]")
-	pdf.outln(fmt.Sprintf("  /Parent %d 0 R", pdf.pageTree.id))
-	pdf.outln(fmt.Sprintf("  /Contents %d 0 R", pdf.page.contents.id))
-	pdf.outln(fmt.Sprintf("  /Resources %d 0 R", pdf.resources.id))
-	pdf.outln(">>")
-	pdf.outln("endobj\n")
+	pdf.writePage()
 
 	// write page contents
-	pdf.newObj(pdf.page.contents.id)
-	pdf.outln("<<")
-	pdf.outln(fmt.Sprintf("  /Length %d", len(pdf.page.contents.data)))
-	pdf.outln(">>")
-	pdf.outln("stream")
-	pdf.outln(pdf.page.instructions.String())
-	pdf.outln("endstream")
-	pdf.outln("endobj\n")
+	pdf.writeContents()
 
 	// write xref
-	pdf.newObjId()
-	pdf.outln("xref")
-	pdf.outln(fmt.Sprintf("0 %d", pdf.n-1))
-	pdf.outln("0000000000 65535 f ")
-
-	for i := 1; i < len(pdf.offsets); i++ {
-		pdf.outln(fmt.Sprintf("%010d 00000 n ", pdf.offsets[i]))
-	}
+	pdf.writeXref()
 
 	// write trailer
-	pdf.outln("trailer")
-	pdf.outln("<<")
-	pdf.outln(fmt.Sprintf("  /Size %d", pdf.n-1))
-	pdf.outln(fmt.Sprintf("  /Root %d 0 R", pdf.catalog.id))
-	pdf.outln(">>")
-	pdf.outln("startxref")
-	pdf.outln(fmt.Sprintf("%d", pdf.offsets[pdf.n-1]))
-	pdf.outln("%%EOF")
+	pdf.writeTrailer()
 
+	// output PDF
 	fmt.Print(string(pdf.w.Bytes()))
 }
