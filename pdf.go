@@ -50,20 +50,6 @@ func NewPdf() *Pdf {
 	return pdf
 }
 
-func (pdf *Pdf) SetFontFamily(fontFamily string) {
-	pdf.fontFamily = "/FONT1"
-}
-
-func (pdf *Pdf) SetFontSize(fontSize int) {
-	pdf.fontSize = fontSize
-}
-
-func (pdf *Pdf) SetFillColorCMYK(c, m, y, k int) {
-	pdf.fillColor = &Color{colorSpace: ColorSpaceCMYK, cmyk: &CMYKColor{C: c, M: m, Y: y, K: k}}
-
-	pdf.page.instructions.add(fmt.Sprintf("%.5f %.5f %.5f %.5f k", float64(pdf.fillColor.cmyk.C)/100, float64(pdf.fillColor.cmyk.M)/100, float64(pdf.fillColor.cmyk.Y)/100, float64(pdf.fillColor.cmyk.K)/100), "set fill color (cmyk)")
-}
-
 func (pdf *Pdf) SetXY(x, y float64) {
 	pdf.x = x
 	pdf.y = y

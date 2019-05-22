@@ -29,5 +29,5 @@ func (pdf *Pdf) writeResources() {
 	}
 	pdf.outln("  >>")
 	pdf.outln(">>")
-	pdf.outln("endobj\n")	
+	pdf.outln("endobj\n")
 }

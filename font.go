@@ -13,6 +13,14 @@ func (pdf *Pdf) newFont() *PdfFont {
 	return font
 }
 
+func (pdf *Pdf) SetFontFamily(fontFamily string) {
+	pdf.fontFamily = "/FONT1"
+}
+
+func (pdf *Pdf) SetFontSize(fontSize int) {
+	pdf.fontSize = fontSize
+}
+
 func (pdf *Pdf) writeFonts() {
 	pdf.newObj(pdf.font.id)
 	pdf.outln("<<")
