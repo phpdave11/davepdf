@@ -1,6 +1,9 @@
 package davepdf
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 type PdfPageTree struct {
 	id    int
@@ -30,6 +33,8 @@ func (pdf *Pdf) writePageTree() {
 	for _, page := range pdf.pageTree.pages {
 		kids += fmt.Sprintf("%d 0 R ", page.id)
 	}
+	// Trim leading space
+	kids = strings.TrimSpace(kids)
 
 	pdf.newObj(pdf.pageTree.id)
 	pdf.outln("<<")
