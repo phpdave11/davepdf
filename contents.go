@@ -17,12 +17,14 @@ func (pdf *Pdf) newContents() *PdfContents {
 }
 
 func (pdf *Pdf) writeContents() {
-	pdf.newObj(pdf.page.contents.id)
-	pdf.outln("<<")
-	pdf.outln(fmt.Sprintf("  /Length %d", len(pdf.page.contents.data)))
-	pdf.outln(">>")
-	pdf.outln("stream")
-	pdf.outln(pdf.page.instructions.String())
-	pdf.outln("endstream")
-	pdf.outln("endobj\n")
+	for _, page := range pdf.pageTree.pages {
+		pdf.newObj(page.contents.id)
+		pdf.outln("<<")
+		pdf.outln(fmt.Sprintf("  /Length %d", len(page.contents.data)))
+		pdf.outln(">>")
+		pdf.outln("stream")
+		pdf.outln(page.instructions.String())
+		pdf.outln("endstream")
+		pdf.outln("endobj\n")
+	}
 }
