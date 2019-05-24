@@ -29,7 +29,7 @@ func (pdf *Pdf) writePage() {
 		pdf.newObj(page.id)
 		pdf.outln("<<")
 		pdf.outln("  /Type /Page")
-		pdf.outln("  /MediaBox [0 0 612 500]")
+		pdf.outln("  /MediaBox [0 0 612 792]")
 		pdf.outln(fmt.Sprintf("  /Parent %d 0 R", pdf.pageTree.id))
 		pdf.outln(fmt.Sprintf("  /Contents %d 0 R", page.contents.id))
 		pdf.outln(fmt.Sprintf("  /Resources %d 0 R", pdf.resources.id))

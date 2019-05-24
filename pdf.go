@@ -41,7 +41,7 @@ func NewPdf() *Pdf {
 	pdf.tplObjIds = make(map[string]int, 0)
 
 	pdf.k = 1.0
-	pdf.h = 500.0
+	pdf.h = 792.0
 
 	pdf.outln("%PDF-1.4")
 	pdf.outln("%ABCD\n")
