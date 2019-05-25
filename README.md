@@ -33,7 +33,7 @@ func main() {
     pdf.SetFillColorCMYK(26, 0, 99, 13)
     pdf.Circle(70, 140, 70, "F")
 
-    pdf.SetLineWidth(50)
+    pdf.SetLineWidth(5)
     pdf.SetLineCapStyle(1)
     pdf.SetLineJoinStyle(0)
     pdf.SetLineDashPattern([]uint{10, 10}, 0)
