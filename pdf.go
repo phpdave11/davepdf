@@ -7,25 +7,30 @@ import (
 )
 
 type Pdf struct {
-	n          int
-	w          *bytes.Buffer
-	catalog    *PdfCatalog
-	resources  *PdfResources
-	font       *PdfFont // temporary while we only use 1 font
-	pageTree   *PdfPageTree
-	xref       *PdfXrefTable
-	fpdi       *gofpdi.Importer
-	tplObjIds  map[string]int
-	offsets    map[int]int
-	objects    []*PdfObject
-	fontFamily string
-	fontSize   int
-	x          float64
-	y          float64
-	k          float64
-	h          float64
-	page       *PdfPage
-	fillColor  *Color
+	n               int
+	w               *bytes.Buffer
+	catalog         *PdfCatalog
+	resources       *PdfResources
+	font            *PdfFont // temporary while we only use 1 font
+	pageTree        *PdfPageTree
+	xref            *PdfXrefTable
+	fpdi            *gofpdi.Importer
+	tplObjIds       map[string]int
+	offsets         map[int]int
+	objects         []*PdfObject
+	fontFamily      string
+	fontSize        int
+	x               float64
+	y               float64
+	k               float64
+	h               float64
+	page            *PdfPage
+	fillColor       *Color
+	strokeColor     *Color
+	lineWidth       float64
+	lineCapStyle    *LineCap
+	lineJoinStyle   *LineJoin
+	lineDashPattern *LineDash
 }
 
 func NewPdf() *Pdf {
