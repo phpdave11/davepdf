@@ -28,6 +28,13 @@ func (pdf *Pdf) writeResources() {
 		pdf.outln(fmt.Sprintf("    %s %d 0 R", tplName, id))
 	}
 	pdf.outln("  >>")
+	pdf.outln("  /Shading <<")
+	for i := 0; i < len(pdf.shadings); i++ {
+		shading := pdf.shadings[i]
+		//pdf.outln(fmt.Sprintf("    /Sh%d %d 0 R", shading.id, shading.id))
+		pdf.outln(fmt.Sprintf("    /Sh%d %d 0 R", 1, shading.id))
+	}
+	pdf.outln("  >>")
 	pdf.outln(">>")
 	pdf.outln("endobj\n")
 }

@@ -13,6 +13,8 @@ type Pdf struct {
 	resources       *PdfResources
 	font            *PdfFont // temporary while we only use 1 font
 	pageTree        *PdfPageTree
+	functions       []*PdfFunction
+	shadings        []*PdfShading
 	xref            *PdfXrefTable
 	fpdi            *gofpdi.Importer
 	tplObjIds       map[string]int
@@ -44,6 +46,8 @@ func NewPdf() *Pdf {
 	pdf.catalog.pageTree = pdf.pageTree
 	pdf.fpdi = gofpdi.NewImporter()
 	pdf.tplObjIds = make(map[string]int, 0)
+	pdf.functions = make([]*PdfFunction, 0)
+	pdf.shadings = make([]*PdfShading, 0)
 
 	pdf.k = 1.0
 	pdf.h = 792.0
@@ -73,6 +77,8 @@ func (pdf *Pdf) Write() {
 	pdf.writePageTree()
 	pdf.writeResources()
 	pdf.writeFonts()
+	pdf.writeFunctions()
+	pdf.writeShadings()
 	pdf.writePage()
 	pdf.writeContents()
 	pdf.writeXref()
