@@ -11,7 +11,7 @@ type Pdf struct {
 	w               *bytes.Buffer
 	catalog         *PdfCatalog
 	resources       *PdfResources
-    fonts           []*PdfFont
+	fonts           []*PdfFont
 	pageTree        *PdfPageTree
 	functions       []*PdfFunction
 	shadings        []*PdfShading

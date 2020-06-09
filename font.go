@@ -1,11 +1,12 @@
 package davepdf
 
 import "strconv"
+
 //import "github.com/davecgh/go-spew/spew"
 
 type PdfFont struct {
-	id int
-    family string
+	id     int
+	family string
 }
 
 func (pdf *Pdf) newFont() *PdfFont {
@@ -42,7 +43,7 @@ func (pdf *Pdf) SetFontSize(fontSize int) {
 }
 
 func (pdf *Pdf) writeFonts() {
-    for _, font := range pdf.fonts {
+	for _, font := range pdf.fonts {
 		pdf.newObj(font.id)
 		pdf.outln("<<")
 		pdf.outln("  /Type /Font")
