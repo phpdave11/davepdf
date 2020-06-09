@@ -12,6 +12,7 @@ type Pdf struct {
 	catalog         *PdfCatalog
 	resources       *PdfResources
 	fonts           []*PdfFont
+	images          []*PdfImage
 	pageTree        *PdfPageTree
 	functions       []*PdfFunction
 	shadings        []*PdfShading
@@ -48,6 +49,7 @@ func NewPdf() *Pdf {
 	pdf.functions = make([]*PdfFunction, 0)
 	pdf.shadings = make([]*PdfShading, 0)
 	pdf.fonts = make([]*PdfFont, 0)
+	pdf.images = make([]*PdfImage, 0)
 
 	pdf.k = 1.0
 	pdf.h = 792.0
@@ -77,6 +79,7 @@ func (pdf *Pdf) Write() {
 	pdf.writePageTree()
 	pdf.writeResources()
 	pdf.writeFonts()
+	pdf.writeImages()
 	pdf.writeFunctions()
 	pdf.writeShadings()
 	pdf.writePage()

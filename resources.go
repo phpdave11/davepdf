@@ -29,11 +29,13 @@ func (pdf *Pdf) writeResources() {
 	for tplName, id := range pdf.tplObjIds {
 		pdf.outln(fmt.Sprintf("    %s %d 0 R", tplName, id))
 	}
+	for _, image := range pdf.images {
+		pdf.outln(fmt.Sprintf("    /Image%d %d 0 R", image.id, image.id))
+	}
 	pdf.outln("  >>")
 	pdf.outln("  /Shading <<")
 	for i := 0; i < len(pdf.shadings); i++ {
 		shading := pdf.shadings[i]
-		//pdf.outln(fmt.Sprintf("    /Sh%d %d 0 R", shading.id, shading.id))
 		pdf.outln(fmt.Sprintf("    /Sh%d %d 0 R", 1, shading.id))
 	}
 	pdf.outln("  >>")
