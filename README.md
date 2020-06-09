@@ -68,8 +68,8 @@ func main() {
 }
 ```
 
-Output (rendered PDF):
-
+Output (rendered [PDF](https://github.com/phpdave11/davepdf/files/4755000/output.pdf)):
+![rendered pdf](https://user-images.githubusercontent.com/9421180/84203734-979d9480-aa6f-11ea-8b39-197c5b6065e5.png)
 
 Output (PDF drawing instructions):
 
