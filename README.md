@@ -47,6 +47,7 @@ func main() {
 
     pdf.Write()
 }
+```
 
 Output (rendered PDF):
 
