@@ -23,15 +23,15 @@
 
 ### Example
 
-```
+```go
 package main
 
 import "github.com/phpdave11/davepdf"
 
 func main() {
-    pdf := davepdf.NewPdf()
+	pdf := davepdf.NewPdf()
 
-    pdf.AddPage()
+	pdf.AddPage()
 
 	pdf.SetFontFamily("Courier-Bold")
 	pdf.SetFontSize(24)
