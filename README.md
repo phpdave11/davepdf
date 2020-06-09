@@ -1,8 +1,27 @@
 # davepdf
 
-## pdf generator library
+## PDF generator library
 
-### example
+### Features
+
+- Creates PDF 1.4 documents
+- Less than 1000 lines of code (currently: 871)
+- Less than 100 lines of code per file
+- ASCII text support
+- Support for 14 fonts: Times-Roman, Times-Bold, Times-Italic, Times-BoldItalic, Courier, Courier-Bold, Courier-Oblique, Courier-BoldOblique, Helvetica, Helvetica-Bold, Helvetica-Oblique, Helvetica-BoldOblique, Symbol, ZapfDingbats
+- JPEG image support
+- PDF output contains only ASCII characters and can be opened in Notepad (except when importing existing PDFs)
+- PDF output includes comments about each PDF drawing instruction
+- Basic shape support: circle, ellipse, rectangle, line, bezier curves
+- Import existing PDF page and print on new PDF page
+
+### Limitations
+
+- Unsupported - use at your own risk
+- No support for external fonts
+- No UTF-8 support
+
+### Example
 
 ```
 package main
