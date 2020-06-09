@@ -21,7 +21,9 @@ func (pdf *Pdf) writeResources() {
 	pdf.outln("<<")
 	pdf.outln("  /ProcSet [/PDF /Text /ImageB /ImageC /ImageI]")
 	pdf.outln("  /Font <<")
-	pdf.outln(fmt.Sprintf("    /FONT1 %d 0 R", pdf.font.id))
+	for _, font := range pdf.fonts {
+		pdf.outln(fmt.Sprintf("    /FONT%d %d 0 R", font.id, font.id))
+	}
 	pdf.outln("  >>")
 	pdf.outln("  /XObject <<")
 	for tplName, id := range pdf.tplObjIds {
