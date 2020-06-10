@@ -27,6 +27,28 @@ func (pdf *Pdf) newImage() *PdfImage {
 	return image
 }
 
+func chunkSplit(body string, chunklen uint, end string) string {
+	if end == "" {
+		end = "\r\n"
+	}
+	runes, erunes := []rune(body), []rune(end)
+	l := uint(len(runes))
+	if l <= 1 || l < chunklen {
+		return body + end
+	}
+	ns := make([]rune, 0, len(runes)+len(erunes))
+	var i uint
+	for i = 0; i < l; i += chunklen {
+		if i+chunklen > l {
+			ns = append(ns, runes[i:]...)
+		} else {
+			ns = append(ns, runes[i:i+chunklen]...)
+		}
+		ns = append(ns, erunes...)
+	}
+	return string(ns)
+}
+
 func (pdf *Pdf) NewJPEGImageFromFile(filename string) *PdfImage {
 	content, err := ioutil.ReadFile(filename)
 	if err != nil {
@@ -39,6 +61,9 @@ func (pdf *Pdf) NewJPEGImageFromFile(filename string) *PdfImage {
 	enc.Write(content)
 	enc.Close()
 	text := out.String()
+
+	// Chunk split into lines
+	text = chunkSplit(text, 76, "\n")
 
 	image := pdf.newImage()
 	//image.w = 256
@@ -63,7 +88,7 @@ func (pdf *Pdf) writeImages() {
 		pdf.outln("  /Height 256")
 		pdf.outln("  /ColorSpace /DeviceRGB")
 		pdf.outln("  /BitsPerComponent 8")
-		pdf.outln("  /Length 15684")
+		pdf.outln("  /Length " + strconv.Itoa(len(image.contents)))
 		pdf.outln("  /Filter [/ASCII85Decode /DCTDecode]")
 		pdf.outln(">>")
 		pdf.outln("stream")
