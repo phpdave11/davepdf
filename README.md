@@ -19,7 +19,7 @@
 
 - Unsupported - use at your own risk
 - No support for external fonts
-- No UTF-8 support
+- No Unicode or UTF-8 support
 
 ### Example
 
