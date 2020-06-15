@@ -1,9 +1,5 @@
 package davepdf
 
-import "strconv"
-
-//import "github.com/davecgh/go-spew/spew"
-
 type PdfFont struct {
 	id     int
 	family string
@@ -53,7 +49,7 @@ func (pdf *Pdf) SetFontFamily(fontFamily string) {
 
 	for _, font := range pdf.fonts {
 		if font.family == fontFamily {
-			pdf.fontFamily = "/FONT" + strconv.Itoa(font.id)
+			pdf.fontFamily = "/Font-" + font.family
 			found = true
 			break
 		}
@@ -62,7 +58,7 @@ func (pdf *Pdf) SetFontFamily(fontFamily string) {
 	if !found {
 		font := pdf.newFont()
 		font.family = fontFamily
-		pdf.fontFamily = "/FONT" + strconv.Itoa(font.id)
+		pdf.fontFamily = "/Font-" + font.family
 	}
 }
 
@@ -76,7 +72,7 @@ func (pdf *Pdf) writeFonts() {
 		pdf.outln("<<")
 		pdf.outln("  /Type /Font")
 		pdf.outln("  /Subtype /Type1")
-		pdf.outln("  /Name /FONT" + strconv.Itoa(font.id))
+		pdf.outln("  /Name /Font-" + font.family)
 		pdf.outln("  /BaseFont /" + font.family)
 		pdf.outln(">>")
 		pdf.outln("endobj\n")

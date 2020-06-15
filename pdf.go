@@ -50,12 +50,12 @@ func NewPdf() *Pdf {
 	pdf.shadings = make([]*PdfShading, 0)
 	pdf.fonts = make([]*PdfFont, 0)
 	pdf.images = make([]*PdfImage, 0)
+	pdf.xref = pdf.newXrefTable()
 
 	pdf.k = 1.0
 	pdf.h = 792.0
 
-	pdf.outln("%PDF-1.4")
-	pdf.outln("%ABCD\n")
+	pdf.outln("%PDF-1.4\n")
 
 	return pdf
 }
@@ -72,6 +72,10 @@ func (pdf *Pdf) outln(s string) {
 
 func (pdf *Pdf) out(s string) {
 	pdf.w.WriteString(s)
+}
+
+func (pdf *Pdf) outbyte(b byte) {
+	pdf.w.WriteByte(b)
 }
 
 func (pdf *Pdf) Write() {
